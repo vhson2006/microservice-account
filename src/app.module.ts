@@ -1,15 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { CustomerModule } from './customer/customer.module';
-import { CommentModule } from './comment/comment.module';
+import { CustomerModule } from './modules/customer/customer.module';
+import { CommentModule } from './modules/comment/comment.module';
 import { ContextIdFactory } from '@nestjs/core';
-import { AggregateByLocaleContextIdStrategy } from './globals/aggregate-by-locale.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { addTransactionalDataSource } from 'typeorm-transactional';
 import appConfig from './assets/configs/app.config';
-import { I18nModule } from './globals/i18n/i18n.module';
 import * as Joi from 'joi';
 import * as  winston from 'winston';
 import { BullModule } from '@nestjs/bull';
@@ -17,7 +13,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WinstonModule } from 'nest-winston';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { IamModule } from './iam/iam.module';
+import { AuthenticationModule } from './modules/auth/authentication.module';
+import { PublicCustomerModule } from './modules/public-customer/public-customer.module';
+import { AggregateByLocaleContextIdStrategy } from './middlewares/globals/aggregate-by-locale.strategy';
+import { I18nModule } from './middlewares/globals/i18n/i18n.module';
 
 ContextIdFactory.apply(new AggregateByLocaleContextIdStrategy());
 
@@ -89,11 +88,10 @@ ContextIdFactory.apply(new AggregateByLocaleContextIdStrategy());
       inject: [ConfigService],
     }),
     I18nModule,
-    IamModule,
+    AuthenticationModule,
     CustomerModule, 
+    PublicCustomerModule,
     CommentModule
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+  ]
 })
 export class AppModule {}

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/core';
 import { pick } from 'accept-language-parser';
 import { Request } from 'express';
-import { I18nService } from 'src/globals/i18n/i18n.service';
+import { I18nService } from './i18n/i18n.service';
 
 export class AggregateByLocaleContextIdStrategy implements ContextIdStrategy {
   // A collection of context identifiers representing separate DI sub-trees per locale

@@ -2,24 +2,12 @@ import {
   BadRequestException, Inject, Injectable, LoggerService, UnauthorizedException 
 } from '@nestjs/common';
 import { 
-  InvalidatedRefreshTokenError, RefreshTokenIdsStorage 
-} from './refresh-token-ids.storage/refresh-token-ids.storage';
-import { 
   CUSTOMER_TYPE, EMAIL_TYPE, VALIDATION_TOKEN_TYPE 
 } from 'src/assets/configs/app.common';
-import { ConfigType } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
-import jwtConfig from '../config/jwt.config';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { SignInDto } from './dto/sign-in.dto';
-import { I18nService } from 'src/globals/i18n/i18n.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { ACCOUNT_SERVICE, CORRECT, INCORRECT } from 'src/assets/configs/app.constant';
-import { SignUpDto } from './dto/sign-up.dto';
+import { NOTIFICATION_SERVICE, CORRECT, INCORRECT } from 'src/assets/configs/app.constant';
 import { ClientProxy } from '@nestjs/microservices';
 import { natsRecord } from 'src/assets/utils/nats';
-import { HashingService } from '../hashing/hashing.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Customer } from 'src/entities/customer.entity';
 import { Repository } from 'typeorm';
@@ -27,20 +15,21 @@ import { CustomerType } from 'src/entities/customer-type.entity';
 import { ValidateToken } from 'src/entities/validate-token.entity';
 import { generateNumber, generateUniqueCode } from 'src/assets/utils/code';
 import { ValidateTokenType } from 'src/entities/validate-token-type.entity';
+import { SignUpDto } from './dto/sign-up.dto';
+import { SignInDto } from './dto/sign-in.dto';
+import { I18nService } from 'src/middlewares/globals/i18n/i18n.service';
+import { HashingService } from 'src/middlewares/iam/hashing/hashing.service';
 
 @Injectable()
 export class AuthenticationService {
   constructor(
-    private readonly jwtService: JwtService,
     private readonly i18nService: I18nService,
-    private readonly refreshTokenIdsStorage: RefreshTokenIdsStorage,
     @InjectRepository(Customer) private readonly customerRepository: Repository<Customer>,
     @InjectRepository(CustomerType) private readonly customerTypeRepository: Repository<CustomerType>,
     @InjectRepository(ValidateToken) private readonly validateTokenRepository: Repository<ValidateToken>,
     @InjectRepository(ValidateTokenType) private readonly validateTokenTypeRepository: Repository<ValidateTokenType>,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: LoggerService,
-    @Inject(ACCOUNT_SERVICE) private readonly natsMessageBroker: ClientProxy,
-    @Inject(jwtConfig.KEY) private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+    @Inject(NOTIFICATION_SERVICE) private readonly natsMessageBroker: ClientProxy,
     private readonly hashingService: HashingService,
   ) {}
 
@@ -105,19 +94,16 @@ export class AuthenticationService {
         type: CUSTOMER_TYPE.ACTIVED,
         group: CUSTOMER_TYPE.GROUP
       });
-
       const customer = await this.customerRepository.findOneBy({
         email: signInDto.email,
         typeId
       });
-  
       if (!customer) {
         return {
           status: INCORRECT,
           message: this.i18nService.translate('ERRORS.USER_NOT_FOUND')
         }
       }
-
       const isEqual = await this.hashingService.compare(
         signInDto.password,
         customer.password,
@@ -128,8 +114,10 @@ export class AuthenticationService {
           message: this.i18nService.translate('ERRORS.PASSWORD_INCORRECT')
         }
       }
-
-      return await this.generateTokens(customer);
+      return {
+        status: CORRECT,
+        data: customer
+      }
     } catch(e) {
       this.logger.error(`${JSON.stringify(e)}`);
       return {
@@ -139,41 +127,25 @@ export class AuthenticationService {
     }
   }
 
-  async refreshTokens(refreshTokenDto: RefreshTokenDto) {
+  async refreshTokens(id: string) {
     try {
-      const { sub, refreshTokenId } = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken, 
-        {
-          secret: this.jwtConfiguration.secret,
-          audience: this.jwtConfiguration.audience,
-          issuer: this.jwtConfiguration.issuer,
-        }
-      );
-
       const customer = await this.customerRepository.findOneOrFail({
         relations: { type: true },
         where: {
           type: { type: CUSTOMER_TYPE.ACTIVED },
-          id: sub,
+          id,
         }
       });
-      const isValid = await this.refreshTokenIdsStorage.validate(
-        customer?.id,
-        refreshTokenId,
-      );
-      if (isValid) {
-        await this.refreshTokenIdsStorage.invalidate(customer.id);
-      } else {
-        throw new Error(this.i18nService.translate('ERRORS.REFRESH_TOKEN_IS_INVALID'));
+      return {
+        status: CORRECT,
+        data: customer
       }
-      return this.generateTokens(customer);
-    } catch (err) {
-      this.logger.error(`${JSON.stringify(err)}`)
-      if (err instanceof InvalidatedRefreshTokenError) {
-        // Take action: notify user that his refresh token might have been stolen?
-        throw new UnauthorizedException(this.i18nService.translate('ERRORS.ACCESS_DENY'));
+    } catch (e) {
+      this.logger.error(`${JSON.stringify(e)}`);
+      return {
+        status: INCORRECT,
+        message: this.i18nService.translate('ERRORS.BAD_REQUEST')
       }
-      throw new UnauthorizedException();
     }
   }
 
@@ -274,53 +246,5 @@ export class AuthenticationService {
         message: this.i18nService.translate('ERRORS.BAD_REQUEST')
       }
     }
-  }
-
-  private async generateTokens(customer: any) {
-    try {
-      const refreshTokenId = randomUUID();
-      const [accessToken, refreshToken] = await Promise.all([
-        this.signToken(
-          customer.id,
-          this.jwtConfiguration.accessTokenTtl,
-          { 
-            permissions: [customer.type.type],
-          },
-        ),
-        this.signToken(
-          customer.id, 
-          this.jwtConfiguration.refreshTokenTtl,
-          {
-            refreshTokenId,
-          }
-        ),
-      ]);
-
-      await this.refreshTokenIdsStorage.insert(customer.id, refreshTokenId);
-      return {
-        accessToken,
-        refreshToken,
-        permission: JSON.stringify({ customer: customer.type.type})
-      };
-    } catch (e) {
-      this.logger.error(`${JSON.stringify(e)}`)
-      throw new BadRequestException(this.i18nService.translate('ERRORS.BAD_REQUEST'));
-    }
-  }
-
-  private async signToken<T>(customerId: string, expiresIn: number, payload?: T) {
-    return await this.jwtService.signAsync(
-      {
-        sub: customerId,
-        ...payload,
-      },
-      {
-        header: { kid: "sim2", alg: "HS256"},
-        audience: this.jwtConfiguration.audience,
-        issuer: this.jwtConfiguration.issuer,
-        secret: this.jwtConfiguration.secret,
-        expiresIn
-      },
-    );
   }
 }
