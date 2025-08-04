@@ -4,7 +4,6 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { initializeTransactionalContext } from 'typeorm-transactional';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import * as compression from 'compression';
 
 async function bootstrap() {
   initializeTransactionalContext();
@@ -23,7 +22,6 @@ async function bootstrap() {
     },
     { inheritAppConfig: true },
   );
-    app.use(compression());
 
   await app.startAllMicroservices();
   app.setGlobalPrefix(config.get('api.prefix'));

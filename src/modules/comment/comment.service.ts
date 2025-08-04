@@ -1,12 +1,12 @@
 import { BadRequestException, Inject, Injectable, LoggerService } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { CORRECT, INCORRECT, DEFAULT_SIZE, MAX_SIZE, DEFAULT_PAGE } from 'src/assets/configs/app.constant';
-import { I18nService } from 'src/globals/i18n/i18n.service';
 import { Repository, DataSource } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
-import { CommentQueryDto } from 'src/comment/dto/query-comment.dto';
+import { CommentQueryDto } from 'src/modules/comment/dto/query-comment.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Comment } from 'src/entities/comment.entity';
+import { I18nService } from 'src/middlewares/globals/i18n/i18n.service';
 
 @Injectable()
 export class CommentService {

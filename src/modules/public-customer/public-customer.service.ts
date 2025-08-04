@@ -1,12 +1,12 @@
 import { Inject, Injectable, LoggerService } from '@nestjs/common';
-import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { INCORRECT, CORRECT } from 'src/assets/configs/app.constant';
-import { I18nService } from 'src/globals/i18n/i18n.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Customer } from 'src/entities/customer.entity';
 import { Repository, Not } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
+import { UpdateCustomerDto } from 'src/modules/customer/dto/update-customer.dto';
+import { I18nService } from 'src/middlewares/globals/i18n/i18n.service';
 
 @Injectable()
 export class PublicCustomerService {

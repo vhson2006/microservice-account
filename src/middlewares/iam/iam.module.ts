@@ -9,21 +9,13 @@ import { AccessTokenGuard } from './authentication/guards/access-token/access-to
 import { AuthenticationGuard } from './authentication/guards/authentication/authentication.guard';
 import { RefreshTokenIdsStorage } from './authentication/refresh-token-ids.storage/refresh-token-ids.storage';
 import { PermissionsGuard } from './authorization/guards/permission.guard';
-import { I18nService } from 'src/globals/i18n/i18n.service';
-import { AuthenticationService } from './authentication/authentication.service';
-import { AuthenticationController } from './authentication/authentication.controller';
 import { BullModule } from '@nestjs/bull';
 import { ACCOUNT_SERVICE, ORGANISATION_SERVICE, QUEUE } from 'src/assets/configs/app.constant';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CustomerType } from 'src/entities/customer-type.entity';
-import { Customer } from 'src/entities/customer.entity';
-import { ValidateTokenType } from 'src/entities/validate-token-type.entity';
-import { ValidateToken } from 'src/entities/validate-token.entity';
+import { I18nService } from '../globals/i18n/i18n.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Customer, CustomerType, ValidateToken, ValidateTokenType]),
     BullModule.registerQueue({
       name: QUEUE.SEND_EMAIL,
     }),
@@ -61,9 +53,7 @@ import { ValidateToken } from 'src/entities/validate-token.entity';
     },
     RefreshTokenIdsStorage,
     AccessTokenGuard,
-    AuthenticationService,
     I18nService,
-  ],
-  controllers: [AuthenticationController],
+  ]
 })
 export class IamModule {}

@@ -1,16 +1,16 @@
 import { Inject, Injectable, LoggerService } from '@nestjs/common';
-import { CreateCustomerDto } from 'src/customer/dto/create-customer.dto';
-import { UpdateCustomerDto } from 'src/customer/dto/update-customer.dto';
+import { CreateCustomerDto } from 'src/modules/customer/dto/create-customer.dto';
+import { UpdateCustomerDto } from 'src/modules/customer/dto/update-customer.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CORRECT, INCORRECT, DEFAULT_SIZE, MAX_SIZE, DEFAULT_PAGE } from 'src/assets/configs/app.constant';
-import { I18nService } from 'src/globals/i18n/i18n.service';
 import { Repository, Like, Not } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
-import { CustomerQueryDto } from 'src/customer/dto/query-customer.dto';
+import { CustomerQueryDto } from 'src/modules/customer/dto/query-customer.dto';
 import { CUSTOMER_TYPE } from 'src/assets/configs/app.common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { CustomerType } from 'src/entities/customer-type.entity';
 import { Customer } from 'src/entities/customer.entity';
+import { I18nService } from 'src/middlewares/globals/i18n/i18n.service';
 
 @Injectable()
 export class CustomerService {
