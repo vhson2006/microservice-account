@@ -52,7 +52,7 @@ import { I18nService } from '../globals/i18n/i18n.service';
       useClass: PermissionsGuard,
     },
     RefreshTokenIdsStorage,
-    AccessTokenGuard,
+    // AccessTokenGuard,
     I18nService,
   ]
 })

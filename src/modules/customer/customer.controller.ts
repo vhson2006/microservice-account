@@ -1,5 +1,4 @@
-import { Controller, Delete, Get, Patch, Post } from '@nestjs/common';
-import { Payload } from '@nestjs/microservices';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreateCustomerDto } from 'src/modules/customer/dto/create-customer.dto';
 import { UpdateCustomerDto } from 'src/modules/customer/dto/update-customer.dto';
 import { CustomerQueryDto } from 'src/modules/customer/dto/query-customer.dto';
@@ -19,19 +18,19 @@ export class CustomerController {
   
   @Permissions(`${CREATE.GROUP}.${VIEW.CUSTOMER}`)
   @Post()
-  async create(@Payload() createCustomerDto: CreateCustomerDto) {
+  async create(@Body() createCustomerDto: CreateCustomerDto) {
     return await this.customerService.create(createCustomerDto);
   }
   
   @Permissions(`${VIEW.GROUP}.${VIEW.CUSTOMER}`)
   @Get()
-  async findAll(@Payload() query: CustomerQueryDto) {
+  async findAll(@Query() query: CustomerQueryDto) {
     return await this.customerService.findAll(query);
   }
 
   @Permissions(`${VIEW.GROUP}.${VIEW.CUSTOMER}`)
   @Get(':id')
-  async findOne(@Payload('id', EntityExistsPipe(Customer)) customer: Customer) {
+  async findOne(@Param('id', EntityExistsPipe(Customer)) customer: Customer) {
     return { 
       status: CORRECT, 
       data: customer
@@ -41,8 +40,8 @@ export class CustomerController {
   @Permissions(`${UPDATE.GROUP}.${UPDATE.CUSTOMER}`)
   @Patch(':id')
   async update(
-    @Payload('id', EntityExistsPipe(Customer)) customer: Customer, 
-    @Payload() updateCustomerDto: UpdateCustomerDto
+    @Param('id', EntityExistsPipe(Customer)) customer: Customer, 
+    @Body() updateCustomerDto: UpdateCustomerDto
   ) {
     const { id, ...data } = updateCustomerDto
     return await this.customerService.update(customer, data);
@@ -50,7 +49,7 @@ export class CustomerController {
 
   @Permissions(`${DELETE.GROUP}.${DELETE.CUSTOMER}`)
   @Delete(':id')
-  async remove(@Payload('id', EntityExistsPipe(Customer)) customer: Customer) {
+  async remove(@Param('id', EntityExistsPipe(Customer)) customer: Customer) {
     return await this.customerService.remove(customer);
   }
 }
